@@ -27,7 +27,7 @@ public class SpecOverviewWindow : EditorWindow
     /// <summary>
     /// The list of PlayerSpecs that we have gotten a hold of since we last refreshed.
     /// </summary>
-    private static List<PlayerSpec> specs = new List<PlayerSpec>();
+    private static List<string> guids = new List<string>();
 
     /// <summary>
     /// Function to show the Window. This will be called by Unity automatically when you try to open this Window
@@ -59,28 +59,16 @@ public class SpecOverviewWindow : EditorWindow
         GUILayout.Label("Specs");
         if (GUILayout.Button(Lang.GetString(Key.Refresh)))
         {
+            // Show a progress bar
+            EditorUtility.DisplayProgressBar(Lang.GetString(Key.Loading), Lang.GetString(Key.Loading), 0.5f);
+            System.Threading.Thread.Sleep(200);         // For demoing
+
             // Clear the list
-            specs.Clear();
+            guids.Clear();
 
             // Find all the specs in the prefabs folder
-            string[] guids = AssetDatabase.FindAssets("t:GameObject", new string[] { resourceFolderPath } );
-            // Go through each one we found
-            for (int i = 0; i < guids.Length; ++i)
-            {
-                // Load it
-                GameObject prefab = (GameObject) AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(guids[i]), typeof(GameObject));
-                // Check if it is a Player Spec
-                var spec = prefab.GetComponent<PlayerSpec>();
-                // Add it to the list
-                if (spec != null)
-                {
-                    specs.Add(spec);
-                }
-                
-                // Show & Update Progress Bar
-                EditorUtility.DisplayProgressBar(Lang.GetString(Key.Loading), (i + 1) + "/" + guids.Length + Lang.GetString(Key.Loaded), ((float)i) / guids.Length - 1);
-                System.Threading.Thread.Sleep(100);         // For demoing
-            }
+            guids.AddRange(AssetDatabase.FindAssets("t:GameObject", new string[] { resourceFolderPath } ));
+            
 
             // We are done. Clear the Progress Bar from the screen
             EditorUtility.ClearProgressBar();
@@ -96,22 +84,28 @@ public class SpecOverviewWindow : EditorWindow
         float width = (position.width - NAME_LABEL_LENGTH * 0.1f * 10.0f - PADDING) * 0.245f;
         float horizontalSpacing = (position.width - NAME_LABEL_LENGTH * 0.1f * 10.0f - PADDING) * 0.25f;
         // -- Draw UI for each Spec
-        for (int i = 0; i < specs.Count; ++i)
+        for (int i = 0; i < guids.Count; ++i)
         {
-            var spec = specs[i];
-
-            // Draw Name
-            GUI.Label(new Rect(5, START_HEIGHT + VERTICAL_SPACING * i, NAME_LABEL_LENGTH, HEIGHT), spec.name);
-            // Draw Progress Bars showing stats
-            EditorGUI.ProgressBar(new Rect(NAME_LABEL_LENGTH + horizontalSpacing * 0.0f, START_HEIGHT + VERTICAL_SPACING * i, width, HEIGHT), (float) spec.Strength / PlayerSpec.MAX_SINGLE_VALUE, Lang.GetString(Key.Strength));
-            EditorGUI.ProgressBar(new Rect(NAME_LABEL_LENGTH + horizontalSpacing * 1.0f, START_HEIGHT + VERTICAL_SPACING * i, width, HEIGHT), (float) spec.Agility / PlayerSpec.MAX_SINGLE_VALUE, Lang.GetString(Key.Agility));
-            EditorGUI.ProgressBar(new Rect(NAME_LABEL_LENGTH + horizontalSpacing * 2.0f, START_HEIGHT + VERTICAL_SPACING * i, width, HEIGHT), (float) spec.Accuracy / PlayerSpec.MAX_SINGLE_VALUE, Lang.GetString(Key.Accuracy));
-
-            // Draw Button to show the object in inspector
-            if (GUI.Button(new Rect(NAME_LABEL_LENGTH + horizontalSpacing * 3.0f, START_HEIGHT + VERTICAL_SPACING * i, width, HEIGHT), Lang.GetString(Key.Open)))
+            // Load it
+            GameObject prefab = (GameObject)AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(guids[i]), typeof(GameObject));
+            // Check if it is a Player Spec
+            var spec = prefab.GetComponent<PlayerSpec>();
+            // Add it to the list
+            if (spec != null)
             {
-                Selection.activeGameObject = spec.gameObject;
-            }
+                // Draw Name
+                GUI.Label(new Rect(5, START_HEIGHT + VERTICAL_SPACING * i, NAME_LABEL_LENGTH, HEIGHT), spec.name);
+                // Draw Progress Bars showing stats
+                EditorGUI.ProgressBar(new Rect(NAME_LABEL_LENGTH + horizontalSpacing * 0.0f, START_HEIGHT + VERTICAL_SPACING * i, width, HEIGHT), (float)spec.Strength / PlayerSpec.MAX_SINGLE_VALUE, Lang.GetString(Key.Strength));
+                EditorGUI.ProgressBar(new Rect(NAME_LABEL_LENGTH + horizontalSpacing * 1.0f, START_HEIGHT + VERTICAL_SPACING * i, width, HEIGHT), (float)spec.Agility / PlayerSpec.MAX_SINGLE_VALUE, Lang.GetString(Key.Agility));
+                EditorGUI.ProgressBar(new Rect(NAME_LABEL_LENGTH + horizontalSpacing * 2.0f, START_HEIGHT + VERTICAL_SPACING * i, width, HEIGHT), (float)spec.Accuracy / PlayerSpec.MAX_SINGLE_VALUE, Lang.GetString(Key.Accuracy));
+
+                // Draw Button to show the object in inspector
+                if (GUI.Button(new Rect(NAME_LABEL_LENGTH + horizontalSpacing * 3.0f, START_HEIGHT + VERTICAL_SPACING * i, width, HEIGHT), Lang.GetString(Key.Open)))
+                {
+                    Selection.activeGameObject = spec.gameObject;
+                }
+            }            
         }
     }
 }
